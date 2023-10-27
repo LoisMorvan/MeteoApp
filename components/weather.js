@@ -1,53 +1,136 @@
-import React, { Component } from "react";
-import { View, Text, TextInput, Button } from "react-native";
+import React from "react";
+import CitySearch from "./citySearch";
+import UserWeather from "./userWeather";
+import { View, Text, StyleSheet } from 'react-native';
+import * as Location from 'expo-location';
 import axios from "axios";
-import CountryWeather from "./countryWeather";
+
 
 const apiKey = "8998cbcb5a9dc632002404e80f2e27a7";
+// b8d0b5ab7fecf4538872aa696912cabb
 
-class Weather extends Component {
+class Weather extends React.Component {
     constructor(props) {
         super(props);
         this.state = {
-            countryInput: "",
-            weatherData: null,
+            cityWeatherData: null,
+            userWeatherData: null,
+            isLoading: true,
+
         };
     }
 
-    handleCountryChange = (text) => {
-        this.setState({ countryInput: text });
+    // When the component is already placed in the DOM
+    async componentDidMount() {
+        try {
+            const userLocation = await this.getUserLocation();
+            await this.getUserWeatherData(userLocation);
+            this.setState({ isLoading: false });
+        } catch (error) {
+            console.error('Error:', error);
+        }
+    }
+
+    getUserLocation = async () => {
+        try {
+            let { status } = await Location.requestForegroundPermissionsAsync();
+            if (status !== 'granted') {
+                console.log('Permission to access location was denied');
+                return;
+            }
+
+            let location = await Location.getCurrentPositionAsync({});
+            const userLocation = location.coords;
+            return userLocation;
+        } catch (error) {
+            console.error(error);
+        }
     };
 
-    fetchWeatherData = async (country) => {
+    // Get weather data with user location
+    getUserWeatherData = async (userLocation) => {
+        if (userLocation) {
+            try {
+                const { latitude, longitude } = userLocation;
+                const response = await axios.get(
+                    `https://api.openweathermap.org/data/2.5/forecast?lat=${latitude}&lon=${longitude}&appid=${apiKey}`
+                );
+                this.setState({ userWeatherData: response.data });
+            } catch (error) {
+                console.error('Error fetching weather data:', error);
+            }
+        }
+    };
+
+    handleSearch = async (city) => {
+        try {
+            // Fetch weather data for the specified city and update the state
+            const cityWeatherData = await this.fetchWeatherData(city);
+            if (cityWeatherData) {
+                await this.getCityWeatherData(cityWeatherData);
+            }
+            // this.setState({ cityWeatherData });
+        } catch (error) {
+            console.error('Error:', error);
+        }
+    };
+
+
+    // Get weather data with city name
+    fetchWeatherData = async (city) => {
         try {
             const response = await axios.get(
-                `https://api.openweathermap.org/data/2.5/weather?q=${country}&appid=${apiKey}`
+                `https://api.openweathermap.org/data/2.5/weather?q=${city}&appid=${apiKey}`
             );
-            this.setState({ weatherData: response.data });
+            return response.data
         } catch (error) {
             console.error('Error fetching weather data:', error);
         }
     };
 
+    // Get weather data with user location
+    getCityWeatherData = async (cityWeatherData) => {
+
+        if (cityWeatherData) {
+            const latitude = cityWeatherData.coord.lat;
+            const longitude = cityWeatherData.coord.lon;
+
+            try {
+                const response = await axios.get(
+                    `https://api.openweathermap.org/data/2.5/forecast?lat=${latitude}&lon=${longitude}&appid=${apiKey}`
+                );
+                this.setState({ cityWeatherData: response.data });
+            } catch (error) {
+                console.error('Error fetching weather data:', error);
+            }
+        }
+    };
+
     render() {
+        const { cityWeatherData, userWeatherData, isLoading } = this.state;
         return (
-            <View>
-                <Text>Enter a Country:</Text>
-                <TextInput
-                    style={{ height: 40, borderColor: "gray", borderWidth: 1 }}
-                    onChangeText={this.handleCountryChange}
-                    value={this.state.countryInput}
-                />
-                <Button
-                    title="Get Weather"
-                    onPress={() => {
-                        this.fetchWeatherData(this.state.countryInput);
-                    }}
-                />
-                <CountryWeather weatherData={this.state.weatherData} />
+            <View style={styles.container}>
+                <CitySearch onSearch={this.handleSearch} />
+                {isLoading ? (
+                    <Text>Loading weather data...</Text>
+                ) : cityWeatherData ? (
+                    <UserWeather weatherData={cityWeatherData} />
+                ) : userWeatherData ? (
+                    <UserWeather weatherData={userWeatherData} />
+                ) : (
+                    <Text>No weather data available.</Text>
+                )}
             </View>
         );
     }
 }
+
+const styles = StyleSheet.create({
+    container: {
+        backgroundColor: 'white',
+        flex: 1,
+        alignItems: 'center',
+    },
+});
 
 export default Weather;
