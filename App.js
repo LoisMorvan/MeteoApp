@@ -1,9 +1,11 @@
 import React from 'react';
-import Weather from './components/weather'
-export default class App extends React.Component {
-  render() {
-    return (
-      <Weather />
-    );
-  }
+import { NavigationContainer } from '@react-navigation/native';
+import Navigation from './components/navigation';
+
+export default function App() {
+  return (
+    <NavigationContainer>
+      <Navigation />
+    </NavigationContainer>
+  );
 }
