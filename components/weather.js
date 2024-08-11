@@ -4,10 +4,9 @@ import UserWeather from "./userWeather";
 import { View, Text, StyleSheet } from 'react-native';
 import * as Location from 'expo-location';
 import axios from "axios";
+import { OPEN_WEATHER_API_KEY } from '@env';
 
-
-const apiKey = "8998cbcb5a9dc632002404e80f2e27a7";
-// b8d0b5ab7fecf4538872aa696912cabb
+const apiKey = OPEN_WEATHER_API_KEY;
 
 class Weather extends React.Component {
     constructor(props) {
